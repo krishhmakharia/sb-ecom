@@ -1,5 +1,6 @@
 package com.ecom.project.services;
 
+import com.ecom.project.exceptions.ResourceNotFoundException;
 import com.ecom.project.model.Category;
 import com.ecom.project.repositories.CategoryRepo;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -50,7 +51,7 @@ public class ServiceImpl implements CategoryService{
 //            categoryRepo.delete(category);
 //        return "Category "+id+" Successfully Deleted !!";
         Optional<Category> savedCategoryOptional = categoryRepo.findById(id);
-        Category savedCategory = savedCategoryOptional.orElseThrow(()-> new ResponseStatusException(HttpStatus.NOT_FOUND,"Not such RESOURCE PRESENT!!"));
+        Category savedCategory = savedCategoryOptional.orElseThrow(()-> new ResourceNotFoundException("Category","CategoryId",id));
         categoryRepo.delete(savedCategory);
         return "Category "+id+" Successfully Deleted !!";
     }
@@ -70,7 +71,7 @@ public class ServiceImpl implements CategoryService{
 //            throw new ResponseStatusException(HttpStatus.NOT_FOUND,"Category Not found");
 //        }
         Optional<Category> savedCategoryOptional = categoryRepo.findById(categoryId);
-        Category savedCategory = savedCategoryOptional.orElseThrow(()-> new ResponseStatusException(HttpStatus.NOT_FOUND,"Resource Not Found!"));
+        Category savedCategory = savedCategoryOptional.orElseThrow(()-> new ResourceNotFoundException("Category","CategoryId",categoryId));
 
         newCategory.setCategoryId(categoryId);
         savedCategory=categoryRepo.save(newCategory);
