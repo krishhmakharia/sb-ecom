@@ -10,7 +10,7 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-@Entity(name="categories")
+@Entity(name="categories")//create table as name of categories in DB
 @Data
 @NoArgsConstructor
 @AllArgsConstructor

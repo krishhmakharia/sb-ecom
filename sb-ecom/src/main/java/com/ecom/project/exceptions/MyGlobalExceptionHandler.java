@@ -1,5 +1,6 @@
 package com.ecom.project.exceptions;
 
+import com.ecom.project.payload.APIResponse;
 import org.springframework.boot.web.error.Error;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -25,8 +26,21 @@ public class MyGlobalExceptionHandler {
         return new ResponseEntity<Map<String,String>>(response, HttpStatus.BAD_REQUEST);
     }
     @ExceptionHandler(ResourceNotFoundException.class)
-    public ResponseEntity<String> myResourceNotFoundException(ResourceNotFoundException e){
+    public ResponseEntity<APIResponse> myResourceNotFoundException(ResourceNotFoundException e){
         String message = e.getMessage();
-        return new ResponseEntity<>(message,HttpStatus.NOT_FOUND);
+        APIResponse response = new APIResponse(message,false);
+        return new ResponseEntity<>(response,HttpStatus.NOT_FOUND);
+    }
+    @ExceptionHandler(APIException.class)
+    public ResponseEntity<APIResponse> myAPIException(APIException e){
+        String message = e.getMessage();
+        APIResponse response = new APIResponse(message,false);
+        return new ResponseEntity<>(response,HttpStatus.BAD_REQUEST);
+    }
+    @ExceptionHandler(EmptyDataException.class)
+    public ResponseEntity<APIResponse> myEmptyDataException(EmptyDataException e){
+        String message = e.getMessage();
+        APIResponse response = new APIResponse(message,false);
+        return new ResponseEntity<>(response,HttpStatus.NOT_FOUND);
     }
 }

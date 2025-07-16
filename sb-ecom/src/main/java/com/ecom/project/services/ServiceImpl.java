@@ -1,81 +1,85 @@
 package com.ecom.project.services;
 
+import com.ecom.project.config.AppConfig;
+import com.ecom.project.exceptions.APIException;
+import com.ecom.project.exceptions.EmptyDataException;
 import com.ecom.project.exceptions.ResourceNotFoundException;
 import com.ecom.project.model.Category;
+import com.ecom.project.payload.CategoryDTO;
+import com.ecom.project.payload.CategoryResponse;
 import com.ecom.project.repositories.CategoryRepo;
+import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.HttpStatus;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.orm.ObjectOptimisticLockingFailureException;
 import org.springframework.stereotype.Service;
-import org.springframework.web.server.ResponseStatusException;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
 @Service
 public class ServiceImpl implements CategoryService{
-
-//    List<Category> categories = new ArrayList<>();
     @Autowired
     private CategoryRepo categoryRepo;
-
+    @Autowired
+    private ModelMapper modelMapper;
 
     @Override
-    public List<Category> getAllCategories() {
-//        return categories;
-        return categoryRepo.findAll();
+    public CategoryResponse getAllCategories(Integer pageNumber, Integer pageSize,String sortBy,String sortOrder) {
+        //Sort type
+        Sort sortByAndOrder = sortOrder.equalsIgnoreCase("asc")
+                ?Sort.by(sortBy).ascending()
+                :Sort.by(sortBy).descending();
+        //Pagination
+        Pageable pageDetails = PageRequest.of(pageNumber,pageSize,sortByAndOrder);
+        Page<Category> categoryPage = categoryRepo.findAll(pageDetails);
+        List<Category> categories = categoryPage.getContent();
+        if (categories.isEmpty())
+            throw new APIException("No Categories exists");
+        List<CategoryDTO> categoryDTOS = categories.stream()
+                .map(category -> modelMapper.map(category, CategoryDTO.class)).toList();
+        CategoryResponse categoryResponse = new CategoryResponse();
+        categoryResponse.setContent(categoryDTOS);
+        //Page info
+        categoryResponse.setPageNumber(categoryPage.getNumber());
+        categoryResponse.setPageSize(categoryPage.getSize());
+        categoryResponse.setTotalPage(categoryPage.getTotalPages());
+        categoryResponse.setTotalElements(categoryPage.getTotalElements());
+        categoryResponse.setLastPage(categoryPage.isLast());
+        return categoryResponse;
     }
 
     @Override
-    public void createCategories(Category category) {
+    public CategoryDTO createCategories(CategoryDTO categoryDTO) {
+        Category category = modelMapper.map(categoryDTO,Category.class);//map Category-->DTO entity
+        Category categoryFromDB = categoryRepo.findByCategoryName(category.getCategoryName());
+        if (categoryFromDB != null)
+            throw new APIException("Category with Name \"" + category.getCategoryName() + "\" is already exists!!");
+        Category savedCategory = categoryRepo.save(category);
 
-//        categories.add(category);
-
-        try {
-            categoryRepo.save(category);
-        } catch (ObjectOptimisticLockingFailureException e) {
-            System.out.println(e.getMessage());
-        }
+        return modelMapper.map(savedCategory, CategoryDTO.class);//map Category entity-->DTO Class
     }
 
     @Override
-    public String deleteCategory(Long id) {
-//        List<Category> categories = categoryRepo.findAll();
-//
-//        Category category = categories.stream()
-//                .filter(c -> c.getCategoryId().equals(id))
-//                .findFirst().orElseThrow(()->new ResponseStatusException(HttpStatus.NOT_FOUND,"Response not found"));
-//
-////        categories.remove(category);
-//            categoryRepo.delete(category);
-//        return "Category "+id+" Successfully Deleted !!";
+    public CategoryDTO deleteCategory(Long id) {
         Optional<Category> savedCategoryOptional = categoryRepo.findById(id);
         Category savedCategory = savedCategoryOptional.orElseThrow(()-> new ResourceNotFoundException("Category","CategoryId",id));
         categoryRepo.delete(savedCategory);
-        return "Category "+id+" Successfully Deleted !!";
+        return modelMapper.map(savedCategory, CategoryDTO.class);
     }
 
     @Override
-    public Category updateCategory(Category newCategory, Long categoryId) {
-//        List<Category> categories = categoryRepo.findAll();
-//        Optional<Category> optionalCategory = categories.stream()
-//                .filter(c-> c.getCategoryId().equals(categoryId))
-//                .findFirst();
-//        if(optionalCategory.isPresent()){
-//            Category existingCategory = optionalCategory.get();
-//            existingCategory.setCategoryName(newCategory.getCategoryName());
-//            Category savedCategory = categoryRepo.save(existingCategory);
-//            return savedCategory;
-//        }else{
-//            throw new ResponseStatusException(HttpStatus.NOT_FOUND,"Category Not found");
-//        }
+    public CategoryDTO updateCategory(CategoryDTO newCategoryDTO, Long categoryId) {
+
         Optional<Category> savedCategoryOptional = categoryRepo.findById(categoryId);
         Category savedCategory = savedCategoryOptional.orElseThrow(()-> new ResourceNotFoundException("Category","CategoryId",categoryId));
-
-        newCategory.setCategoryId(categoryId);
-        savedCategory=categoryRepo.save(newCategory);
-        return savedCategory;
+        Category category = modelMapper.map(newCategoryDTO,Category.class);
+        category.setCategoryId(categoryId);
+        savedCategory = categoryRepo.save(category);
+        return modelMapper.map(savedCategory, CategoryDTO.class);
     }
 
 }
